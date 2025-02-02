@@ -1,9 +1,24 @@
 #include "slider.hpp"
 
 
-Slider::Slider(float x, float y, float width, float height, float minValue, float maxValue)
-    : sliderRect(Rectangle{x, y, width, height}), m_min(minValue), m_max(maxValue)
+Slider::Slider(float x, float y, float width, float height, float minValue, float maxValue, float initialValue)
+    : sliderRect(Rectangle{x, y, width, height}), m_min(minValue), m_max(maxValue), m_sliderCirclePos(initialValue / maxValue * width)
 {}
+
+
+void Slider::update(const Vector2& mousePos)
+{
+    Vector2 pos = Vector2{sliderRect.x + m_sliderCirclePos, sliderRect.y + sliderRect.height / 2.0f};
+    float dist  = Vector2Dist(mousePos, pos);
+
+    if (IsMouseButtonPressed(MouseButton::MOUSE_BUTTON_LEFT) && dist < sliderRect.height)
+        m_moving = true;
+    if (IsMouseButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
+        m_moving = false;
+
+    if (m_moving)
+        m_sliderCirclePos = Clamp(mousePos.x - sliderRect.x, 0.0f, sliderRect.width);
+}
 
 
 void Slider::render(const Texture& texture)
@@ -30,7 +45,7 @@ void Slider::render(const Texture& texture)
     EndShaderMode();
 
     // Draw slider value
-    const char* text = TextFormat("%i", static_cast<int>(getValue()));
+    const char* text = TextFormat("%f", getValue());
     const Font font  = GetFontDefault();
     DrawText(
         text,
@@ -42,22 +57,7 @@ void Slider::render(const Texture& texture)
 }
 
 
-void Slider::update(const Vector2& mousePos)
-{
-    Vector2 pos = Vector2{sliderRect.x + m_sliderCirclePos, sliderRect.y + sliderRect.height / 2.0f};
-    float dist  = Vector2Dist(mousePos, pos);
-
-    if (IsMouseButtonPressed(MouseButton::MOUSE_BUTTON_LEFT) && dist < sliderRect.height)
-        m_moving = true;
-    if (IsMouseButtonReleased(MouseButton::MOUSE_BUTTON_LEFT))
-        m_moving = false;
-
-    if (m_moving)
-        m_sliderCirclePos = Clamp(mousePos.x - sliderRect.x, 0.0f, sliderRect.width);
-}
-
-
-float Slider::getValue()
+float Slider::getValue() const
 {
     return (m_sliderCirclePos / sliderRect.width) * m_max + m_min;
 }

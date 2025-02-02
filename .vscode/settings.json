@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.json": "jsonc",
+        "unordered_map": "cpp",
+        "random": "cpp"
+    }
+}

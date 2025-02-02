@@ -4,15 +4,13 @@
 
 #include "utils.hpp"
 #include "node.cpp"
-#include "slider.cpp"
+#include "ui/slider.cpp"
+#include "ui/slider_wrapper.cpp"
 
 
 #define NODE_VEL_FACTOR 1.5f
 
 #define NODE_COUNT 100
-
-#define NODE_RADIUS     5.0f
-#define NODE_RADIUS_VAR 2.5f
 
 #define CONNECTION_WIDTH     2.0f
 #define CONNECTION_DISTANCE  150.0f
@@ -26,15 +24,16 @@ constexpr float SLIDER_RADIUS = SLIDER_THICKNESS / 2.0f;
 
 struct Settings_t
 {
+    float NodeRadius           = 5.0f;
     unsigned char NodeMaxAlpha = 255;
 } Settings;
 
 
 int main()
 {
-    const Vector2 screenResolution = {1300.0f, 900.0f};
-    Vector2 nodeAreaResolution     = {900.0f, 800.0f};
-    Vector2 sliderAreaResolution   = {900.0f, 800.0f};
+    const Vector2 screenResolution = { 1300.0f, 900.0f };
+    Vector2 nodeAreaResolution     = { 900.0f, 800.0f };
+    Vector2 sliderAreaResolution   = { 900.0f, 800.0f };
 
     Node::screenRes    = &nodeAreaResolution;
     Slider::sliderArea = &sliderAreaResolution;
@@ -58,22 +57,19 @@ int main()
     Texture texture = LoadTextureFromImage(img);
     UnloadImage(img);
 
-    std::vector<Node> nodes     = {};
-    std::vector<Slider> sliders = {};
-    sliders.push_back(Slider(nodeAreaResolution.x + 35, 20, 200, SLIDER_THICKNESS, 0, 255));
+    std::vector<Node> nodes = {};
+    SliderWrapper sliderWrapper;
+    sliderWrapper.addSlider("Connection Alpha", nodeAreaResolution.x + 35.0f, 20.0f, 200.0f, SLIDER_THICKNESS, 0.0f, 255.0f, 255.0f);
+    sliderWrapper.addSlider("Node Radius", nodeAreaResolution.x + 35.0f, 20.0f + 50.0f, 200.0f, SLIDER_THICKNESS, 0.0f, 10.0f, 5.0f);
 
-    // Add nodes to vector
+    // Add nodes
     for (int i = 0; i < NODE_COUNT; ++i) {
-        float radius = NODE_RADIUS + GetRandomValue(0, NODE_RADIUS_VAR);
-
         nodes.push_back(Node{
-            .pos = Vector2{static_cast<float>(GetRandomValue(radius, nodeAreaResolution.x - radius - 1)), static_cast<float>(GetRandomValue(radius, nodeAreaResolution.y - radius - 1))},
+            .pos = Vector2{ static_cast<float>(GetRandomValue(Settings.NodeRadius, nodeAreaResolution.x - Settings.NodeRadius - 1)), static_cast<float>(GetRandomValue(Settings.NodeRadius, nodeAreaResolution.y - Settings.NodeRadius - 1)) },
 
-            .vel = Vector2{static_cast<float>(GetRandomValue(-100, 100)) * NODE_VEL_FACTOR / 100.0f, static_cast<float>(GetRandomValue(-100, 100)) * NODE_VEL_FACTOR / 100.0f},
+            .vel = Vector2{ static_cast<float>(GetRandomValue(-100, 100)) * NODE_VEL_FACTOR / 100.0f, static_cast<float>(GetRandomValue(-100, 100)) * NODE_VEL_FACTOR / 100.0f },
 
-            .radius = radius,
-
-            .color = Color{static_cast<unsigned char>(GetRandomValue(0, 255)), static_cast<unsigned char>(GetRandomValue(0, 255)), static_cast<unsigned char>(GetRandomValue(0, 255)), 255}
+            .color = Color{ static_cast<unsigned char>(GetRandomValue(0, 255)), static_cast<unsigned char>(GetRandomValue(0, 255)), static_cast<unsigned char>(GetRandomValue(0, 255)), 255 }
         });
     }
 
@@ -85,11 +81,13 @@ int main()
 
         int connectionCount = 0;
 
-        Settings.NodeMaxAlpha = sliders[0].getValue();
+        Settings.NodeMaxAlpha = sliderWrapper.getSlider("Connection Alpha").getValue();
+        Settings.NodeRadius   = sliderWrapper.getSlider("Node Radius").getValue();
 
         // Update + draw nodes
         for (size_t i = 0; i < nodes.size(); ++i) {
             Node& current = nodes[i];
+            current.radius = Settings.NodeRadius;
 
             for (size_t j = i + 1; j < nodes.size(); ++j) {
                 const Node& other = nodes[j];
@@ -113,7 +111,7 @@ int main()
 
             // Draw circle
             SetShaderValue(circleShader, GetShaderLocation(circleShader, "position"), &current.pos, SHADER_UNIFORM_VEC2);
-            SetShaderValue(circleShader, GetShaderLocation(circleShader, "radius"), &current.radius, SHADER_UNIFORM_FLOAT);
+            SetShaderValue(circleShader, GetShaderLocation(circleShader, "radius"), &Settings.NodeRadius, SHADER_UNIFORM_FLOAT);
             BeginShaderMode(circleShader);
             DrawTexture(texture, 0, 0, current.color);
             EndShaderMode();
@@ -129,10 +127,7 @@ int main()
             }
         }
 
-        for (Slider& slider : sliders) {
-            slider.update(mousePos);
-            slider.render(texture);
-        }
+        sliderWrapper.updateAndRender(mousePos, texture);
 
         DrawText(TextFormat("Node Count: %i", static_cast<int>(nodes.size())), 5, nodeAreaResolution.y + 5, 20, WHITE);
         DrawText(TextFormat("Node Connection Count: %i", connectionCount), 5, nodeAreaResolution.y + 25, 20, WHITE);

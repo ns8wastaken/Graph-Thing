@@ -1,31 +1,31 @@
 #pragma once
 #include <raylib.h>
 
-#include "utils.hpp"
+#include "../utils.hpp"
 
 
 class Slider
 {
 public:
-    Slider(float x, float y, float width, float height, float minValue, float maxValue);
+    Slider(float x, float y, float width, float height, float minValue, float maxValue, float initialValue);
     Rectangle sliderRect;
 
-    float getValue();
+    float getValue() const;
 
     static Vector2* sliderArea;
     static Shader* sliderShader;
     static Shader* circleShader;
 
-    void render(const Texture& texture);
     void update(const Vector2& mousePos);
+    void render(const Texture& texture);
 
 private:
-    float m_sliderCirclePos = 0.0f;
-
     bool m_moving = false;
 
     float m_min = 0.0f;
     float m_max = 0.0f;
+
+    float m_sliderCirclePos;
 };
 
 Vector2* Slider::sliderArea  = nullptr;
